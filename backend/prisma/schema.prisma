@@ -1,0 +1,320 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  ACCOUNTANT
+}
+
+enum ChallanStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+  CARD
+  OTHER
+}
+
+enum InventoryType {
+  STOCK_IN
+  STOCK_OUT
+  ADJUSTMENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String
+  role         Role     @default(STAFF)
+  phone        String?
+  avatar       String?
+  isActive     Boolean  @default(true)
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id])
+  activityLogs ActivityLog[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([companyId])
+}
+
+model Company {
+  id              String   @id @default(cuid())
+  name            String
+  tradeName       String?
+  gstin           String?
+  pan             String?
+  address         String?
+  city            String?
+  state           String?
+  pincode         String?
+  phone           String?
+  email           String?
+  website         String?
+  logo            String?
+  bankName        String?
+  bankAccount     String?
+  bankIfsc        String?
+  challanPrefix   String   @default("CH")
+  invoicePrefix   String   @default("INV")
+  challanCounter  Int      @default(1)
+  invoiceCounter  Int      @default(1)
+  defaultCgst     Float    @default(2.5)
+  defaultSgst     Float    @default(2.5)
+  defaultIgst     Float    @default(5)
+  terms           String?
+  signature       String?
+  isDefault       Boolean  @default(false)
+  users           User[]
+  customers       Customer[]
+  products        Product[]
+  challans        Challan[]
+  invoices        Invoice[]
+  inventory       InventoryTransaction[]
+  activityLogs    ActivityLog[]
+  notifications   Notification[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Customer {
+  id                String    @id @default(cuid())
+  companyId         String
+  company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name              String
+  gstin             String?
+  address           String?
+  city              String?
+  state             String?
+  pincode           String?
+  mobile            String?
+  email             String?
+  outstandingBalance Float    @default(0)
+  creditLimit       Float?
+  notes             String?
+  isActive          Boolean   @default(true)
+  challans          Challan[]
+  invoices          Invoice[]
+  payments          Payment[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([name])
+  @@index([mobile])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  fabricName    String
+  designNumber  String?
+  colour        String?
+  category      String?
+  rate          Float    @default(0)
+  unit          String   @default("MTR")
+  stockQuantity Float    @default(0)
+  minStock      Float    @default(0)
+  barcode       String?
+  image         String?
+  hsnCode       String?
+  gstPercent    Float    @default(5)
+  isActive      Boolean  @default(true)
+  challanItems  ChallanItem[]
+  inventory     InventoryTransaction[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([fabricName])
+  @@index([barcode])
+}
+
+model Challan {
+  id              String        @id @default(cuid())
+  companyId       String
+  company           Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  challanNumber   String
+  date            DateTime      @default(now())
+  partyName       String
+  partyAddress    String?
+  partyGstin      String?
+  partyMobile     String?
+  status          ChallanStatus @default(DRAFT)
+  subtotal        Float         @default(0)
+  discount        Float         @default(0)
+  taxableAmount   Float         @default(0)
+  cgstAmount      Float         @default(0)
+  sgstAmount      Float         @default(0)
+  igstAmount      Float         @default(0)
+  totalAmount     Float         @default(0)
+  roundOff        Float         @default(0)
+  notes           String?
+  transport       String?
+  vehicleNo       String?
+  isInterState    Boolean       @default(false)
+  items           ChallanItem[]
+  invoice         Invoice?
+  createdBy       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([companyId, challanNumber])
+  @@index([companyId])
+  @@index([date])
+  @@index([status])
+}
+
+model ChallanItem {
+  id          String   @id @default(cuid())
+  challanId   String
+  challan     Challan  @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  description String
+  designNo    String?
+  colour      String?
+  meter       Float    @default(0)
+  pieces      Int?
+  rate        Float    @default(0)
+  amount      Float    @default(0)
+  hsnCode     String?
+  gstPercent  Float    @default(0)
+  sortOrder   Int      @default(0)
+
+  @@index([challanId])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  challanId       String?       @unique
+  challan         Challan?      @relation(fields: [challanId], references: [id])
+  invoiceNumber   String
+  date            DateTime      @default(now())
+  dueDate         DateTime?
+  partyName       String
+  partyAddress    String?
+  partyGstin      String?
+  status          InvoiceStatus @default(DRAFT)
+  subtotal        Float         @default(0)
+  discount        Float         @default(0)
+  taxableAmount   Float         @default(0)
+  cgstAmount      Float         @default(0)
+  sgstAmount      Float         @default(0)
+  igstAmount      Float         @default(0)
+  totalAmount     Float         @default(0)
+  paidAmount      Float         @default(0)
+  balanceAmount   Float         @default(0)
+  roundOff        Float         @default(0)
+  notes           String?
+  payments        Payment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+  @@index([date])
+  @@index([status])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String?
+  invoice     Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    Customer?     @relation(fields: [customerId], references: [id])
+  amount      Float
+  method      PaymentMethod @default(CASH)
+  reference   String?
+  date        DateTime      @default(now())
+  notes       String?
+  createdAt   DateTime      @default(now())
+
+  @@index([invoiceId])
+  @@index([customerId])
+}
+
+model InventoryTransaction {
+  id          String        @id @default(cuid())
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type        InventoryType
+  quantity    Float
+  rollNo      String?
+  meterBefore Float?
+  meterAfter  Float?
+  reference   String?
+  notes       String?
+  date        DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+
+  @@index([companyId])
+  @@index([productId])
+  @@index([date])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String?
+  entityId  String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info")
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([isRead])
+}
