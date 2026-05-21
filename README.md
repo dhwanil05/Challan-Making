@@ -118,6 +118,8 @@ challan/
 
 ## Deployment
 
+**Vercel (frontend + API):** see [DEPLOY.md](./DEPLOY.md) — requires Neon/Supabase for PostgreSQL.
+
 ### Backend (Railway / Render / VPS)
 
 ```bash

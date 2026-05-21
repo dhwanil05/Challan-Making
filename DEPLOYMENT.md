@@ -10,7 +10,11 @@ Add services to `docker-compose.yml` for API and frontend, or deploy separately.
 docker compose up -d postgres
 ```
 
-## Option B: Vercel + Railway
+## Option B: All-in-one Vercel (see [DEPLOY.md](./DEPLOY.md))
+
+Deploy frontend + API from the **repo root** using `vercel.json`. You still need a hosted PostgreSQL (Neon/Supabase).
+
+## Option C: Vercel + Railway (recommended if Vercel API has issues)
 
 ### Railway (Backend + PostgreSQL)
 
