@@ -1,6 +1,6 @@
 # Deploy to Vercel
 
-This project deploys **frontend (Next.js)** and **API (Express)** together on Vercel.
+Deploy **frontend (Next.js)** on Vercel and **API (Express)** on Railway or Render.
 
 ## 1. Database (required)
 
@@ -37,25 +37,31 @@ Project → **Settings** → **Environment Variables**:
 
 | Name | Value | Notes |
 |------|--------|--------|
-| `DATABASE_URL` | `postgresql://...` | From Neon/Supabase |
-| `JWT_SECRET` | long random string | e.g. `openssl rand -base64 32` |
-| `NODE_ENV` | `production` | |
-| `FRONTEND_URL` | `https://your-app.vercel.app` | Your Vercel URL after first deploy |
-| `PUBLIC_SIGNUP_DISABLED` | `true` | Optional — block public sign-up |
-| `JWT_EXPIRES_IN` | `7d` | Optional |
+| `NEXT_PUBLIC_API_URL` | `https://your-api.railway.app/api` | Backend URL (required) |
 
-`NEXT_PUBLIC_API_URL` is **optional** — on Vercel the app uses `/api` on the same domain automatically.
+Backend (Railway/Render) needs: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL` = your Vercel URL, `NODE_ENV` = `production`.
 
 After adding variables, redeploy: **Deployments** → **Redeploy**.
 
 ## 4. Deploy from GitHub (recommended)
 
 1. Push repo to GitHub
-2. [vercel.com/new](https://vercel.com/new) → Import repository
-3. **Root Directory:** leave as `.` (repo root)
-4. Framework: **Next.js** (auto from `vercel.json`)
-5. Add environment variables (step 3)
+2. [vercel.com/new](https://vercel.com/new) → Import **Challan-Making** repository
+3. **Root Directory:** set to `frontend` (required — Next.js lives here)
+4. Framework: **Next.js** (auto-detected from `frontend/package.json`)
+5. Add environment variables (step 3 below + API URL)
 6. Deploy
+
+### Vercel project settings (important)
+
+| Setting | Value |
+|---------|--------|
+| Root Directory | `frontend` |
+| Framework Preset | Next.js |
+| Build Command | `npm run build` (default) |
+| Output Directory | `.next` (default) |
+
+If you see *"No Next.js version detected"*, the Root Directory is wrong — it must be **`frontend`**, not the repo root.
 
 ## 5. Production checklist
 
